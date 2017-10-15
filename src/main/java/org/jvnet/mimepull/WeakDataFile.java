@@ -51,6 +51,7 @@ import java.io.RandomAccessFile;
 import java.lang.ref.ReferenceQueue;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.logging.Level;
@@ -68,7 +69,7 @@ final class WeakDataFile extends WeakReference<DataFile> {
     private static int TIMEOUT = 10; //milliseconds
     //private static final int MAX_ITERATIONS = 2;
     private static ReferenceQueue<DataFile> refQueue = new ReferenceQueue<DataFile>();
-    private static List<WeakDataFile> refList = new ArrayList<WeakDataFile>();
+    private static List<WeakDataFile> refList = Collections.synchronizedList(new ArrayList<WeakDataFile>());
     private final File file;
     private final RandomAccessFile raf;
     private static boolean hasCleanUpExecutor = false;
@@ -80,7 +81,7 @@ final class WeakDataFile extends WeakReference<DataFile> {
             if (LOGGER.isLoggable(Level.CONFIG)) {
                 LOGGER.log(Level.CONFIG, "Cannot read ''{0}'' property, using defaults.",
                         new Object[] {"org.jvnet.mimepull.delay"});
-            } 
+            }
     	}
         CleanUpExecutorFactory executorFactory = CleanUpExecutorFactory.newInstance();
         if (executorFactory!=null) {
@@ -133,6 +134,11 @@ final class WeakDataFile extends WeakReference<DataFile> {
         refList.remove(this);
         try {
             raf.close();
+            if (!file.exists()) {
+                LOGGER.log(Level.FINE, "File doesn't exist anymore: {0}", file.getName());
+                return;
+            }
+
             boolean deleted = file.delete();
             if (!deleted) {
                 if (LOGGER.isLoggable(Level.INFO)) {
@@ -165,7 +171,7 @@ final class WeakDataFile extends WeakReference<DataFile> {
 
     }
 
-    static void drainRefQueueBounded() {
+    synchronized static void drainRefQueueBounded() {
         WeakDataFile weak;
         while (( weak = (WeakDataFile) refQueue.poll()) != null ) {
             if (LOGGER.isLoggable(Level.FINE)) {
@@ -174,7 +180,7 @@ final class WeakDataFile extends WeakReference<DataFile> {
             weak.close();
         }
     }
-    
+
 private static class CleanupRunnable implements Runnable {
     @Override
     public void run() {
@@ -193,5 +199,5 @@ private static class CleanupRunnable implements Runnable {
         } catch (InterruptedException e) {
         }
     }
-}    
+}
 }
