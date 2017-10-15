@@ -94,8 +94,8 @@ final class MemoryData implements Data {
                 String prefix = config.getTempFilePrefix();
                 String suffix = config.getTempFileSuffix();
                 File tempFile = TempFiles.createTempFile(prefix, suffix, config.getTempDir());
-                // delete the temp file when VM exits as a last resort for file clean up
-                tempFile.deleteOnExit();
+                //delete the temp file when VM exits as a last resort for file clean up
+                //tempFile.deleteOnExit(); //Deactivated to avoid memory leaks.
                 if (LOGGER.isLoggable(Level.FINE)) {
                     LOGGER.log(Level.FINE, "Created temp file = {0}", tempFile);
                 }
